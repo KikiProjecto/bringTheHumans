@@ -1,1 +1,10 @@
 .makefun/
+node_modules/
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+*.swp
+*~
+*.log
