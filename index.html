@@ -41,7 +41,7 @@
     align-items: start;
   }
   .mark { margin-top: 6px; }
-  .mark svg { display: block; width: 340px; height: 340px; }
+  .mark canvas { display: block; width: 340px; height: 340px; }
   h1 {
     font-size: 80px;
     line-height: 0.94;
@@ -138,22 +138,8 @@
       <div><b>03 — judge</b><span>The crowd scores the work, not the pitch.</span></div>
     </div>
     </div>
-    <aside class="mark" aria-label="A crowd of human figures">
-      <svg viewBox="0 0 340 340" role="img" aria-hidden="true">
-        <circle cx="170" cy="170" r="170" fill="#a8401d"/>
-        <g fill="#f2efe9">
-          <path d="M56 304v-18a22 22 0 0 1 44 0v18z"/>
-          <circle cx="78" cy="254" r="16"/>
-          <path d="M102 304v-22a24 24 0 0 1 48 0v22z"/>
-          <circle cx="126" cy="248" r="17"/>
-          <path d="M142 304v-26a28 28 0 0 1 56 0v26z"/>
-          <circle cx="170" cy="239" r="19"/>
-          <path d="M190 304v-22a24 24 0 0 1 48 0v22z"/>
-          <circle cx="214" cy="248" r="17"/>
-          <path d="M240 304v-18a22 22 0 0 1 44 0v18z"/>
-          <circle cx="262" cy="254" r="16"/>
-        </g>
-      </svg>
+    <aside class="mark">
+      <canvas id="coin" width="340" height="340" role="img" aria-label="A slowly turning coin face stamped with a crowd of people"></canvas>
     </aside>
   </main>
 
@@ -161,5 +147,73 @@
     <span>@kikiprojecto-2</span>
     <span>entry v2 — prizes to the pinned wallet</span>
   </footer>
+
+<script src="vendor/three.min.js"></script>
+<script>
+  (() => {
+    const canvas = document.getElementById('coin');
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(340, 340, false);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 20);
+    camera.position.set(0, 0.5, 4.1);
+    camera.lookAt(0, 0, 0);
+
+    // coin face: the crowd silhouette drawn onto the stamp
+    const face = (() => {
+      const c = document.createElement('canvas');
+      c.width = c.height = 512;
+      const g = c.getContext('2d');
+      g.fillStyle = '#a8401d';
+      g.fillRect(0, 0, 512, 512);
+      g.fillStyle = '#f2efe9';
+      const s = 512 / 340;
+      g.setTransform(s, 0, 0, s, 256 - 170 * s, 256 - 272 * s);
+      for (const d of [
+        'M56 304v-18a22 22 0 0 1 44 0v18z',
+        'M102 304v-22a24 24 0 0 1 48 0v22z',
+        'M142 304v-26a28 28 0 0 1 56 0v26z',
+        'M190 304v-22a24 24 0 0 1 48 0v22z',
+        'M240 304v-18a22 22 0 0 1 44 0v18z',
+      ]) g.fill(new Path2D(d));
+      for (const [x, y, r] of [[78, 254, 16], [126, 248, 17], [170, 239, 19], [214, 248, 17], [262, 254, 16]]) {
+        g.beginPath();
+        g.arc(x, y, r, 0, Math.PI * 2);
+        g.fill();
+      }
+      const tex = new THREE.CanvasTexture(c);
+      tex.center.set(0.5, 0.5);
+      tex.rotation = Math.PI / 2;
+      return tex;
+    })();
+
+    const rim = new THREE.MeshStandardMaterial({ color: 0x963a1a, roughness: 0.9 });
+    const faceMat = new THREE.MeshStandardMaterial({ map: face, roughness: 0.9 });
+    const coin = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.13, 128), [rim, faceMat, faceMat]);
+    coin.rotation.x = Math.PI / 2;
+
+    const pivot = new THREE.Group();
+    pivot.rotation.set(-0.3, -0.6, 0);
+    pivot.add(coin);
+    scene.add(pivot);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+    const key = new THREE.DirectionalLight(0xffffff, 0.6);
+    key.position.set(-2, 3, 4);
+    const fill = new THREE.DirectionalLight(0xffffff, 0.35);
+    fill.position.set(2, -2, 3);
+    scene.add(key, fill);
+
+    const spin = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 0.5;
+    const clock = new THREE.Clock();
+    (function frame() {
+      pivot.rotation.y = -0.6 + clock.getElapsedTime() * spin;
+      renderer.render(scene, camera);
+      requestAnimationFrame(frame);
+    })();
+  })();
+</script>
 </body>
 </html>
