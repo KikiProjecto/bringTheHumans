@@ -91,6 +91,7 @@
     transform: translateY(-40px);
     --poster-color: transparent;
     --progress-bar-height: 0px;
+    --reveal-duration: 0.35s;
   }
   .stage .fallback {
     position: absolute;
@@ -99,8 +100,9 @@
     height: 100%;
     object-fit: contain;
     transform: translateY(-40px);
+    display: none;
   }
-  .stage.ready .fallback { display: none; }
+  .stage.failed .fallback { display: block; }
   .band {
     margin-top: 0;
     display: grid;
@@ -152,10 +154,12 @@
     footer { flex-wrap: wrap; gap: 6px; }
   }
 </style>
+<link rel="modulepreload" href="vendor/model-viewer.min.js">
+<noscript><style>.stage .fallback { display: block; }</style></noscript>
 </head>
 <body>
   <header>
-    <span class="brand">make.fun</span>
+    <span class="brand" href="https://make.fun/r/r2df79qt">make.fun</span>
     <span class="meta">competition bring-the-humans-01</span>
   </header>
 
@@ -205,10 +209,15 @@
       <p class="hint">Use r2df79qt at signup, or send the link to one human who reads. Both count.</p>
     </div>
 <script>
-  // Static frame stays visible when the module is blocked (file://) or WebGL fails.
-  document.querySelector('model-viewer').addEventListener('load', () => {
-    document.querySelector('.stage').classList.add('ready');
-  });
+  // Poster is a fallback only: shown when the viewer errors (no WebGL, bad asset,
+  // blocked module) or never loads, so the object never changes size when the
+  // 3D view takes over.
+  const mv = document.querySelector('model-viewer');
+  const stage = document.querySelector('.stage');
+  const showFallback = () => stage.classList.add('failed');
+  mv.addEventListener('error', showFallback);
+  mv.addEventListener('load', () => stage.classList.remove('failed'));
+  setTimeout(() => { if (!mv.loaded) showFallback(); }, 8000);
 </script>
 <script type="module" src="vendor/model-viewer.min.js"></script>
 </body>
